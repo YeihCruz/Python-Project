@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from src.ui.ui_scaling import UIScale
 
 
 class UIStyles:
@@ -37,7 +38,7 @@ class UIStyles:
                         foreground="white",
                         borderwidth=0,
                         focuscolor="none",
-                        font=("Segoe UI", 10, "bold"))
+                        font=("Segoe UI", UIScale.font(10), "bold"))
         style.map("Primary.TButton",
                   background=[("active", UIStyles.PRIMARY_DARK)])
 
@@ -45,7 +46,7 @@ class UIStyles:
                         background=UIStyles.CARD_BG,
                         foreground=UIStyles.TEXT_SECONDARY,
                         borderwidth=1,
-                        font=("Segoe UI", 10))
+                        font=("Segoe UI", UIScale.font(10)))
         style.map("Secondary.TButton",
                   background=[("active", "#F5F5F7")])
 
@@ -53,7 +54,7 @@ class UIStyles:
                         background=UIStyles.SIDEBAR_BG,
                         foreground=UIStyles.SIDEBAR_TEXT,
                         borderwidth=0,
-                        font=("Segoe UI", 11),
+                        font=("Segoe UI", UIScale.font(11)),
                         anchor="w")
         style.map("Sidebar.TButton",
                   background=[("active", UIStyles.SIDEBAR_HOVER)])
@@ -61,7 +62,7 @@ class UIStyles:
         style.configure("TLabel",
                         background=UIStyles.BG_LIGHT,
                         foreground=UIStyles.TEXT_PRIMARY,
-                        font=("Segoe UI", 10))
+                        font=("Segoe UI", UIScale.font(10)))
 
         style.configure("Card.TFrame",
                         background=UIStyles.CARD_BG)

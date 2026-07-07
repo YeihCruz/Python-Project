@@ -16,3 +16,6 @@ class UserRepository(BaseRepository[User]):
     def exists_admin(self) -> bool:
         result = self.session.execute(select(User).where(User.role_id == 1).limit(1))
         return result.scalar_one_or_none() is not None
+
+    def count(self) -> int:
+        return self.session.query(User).count()

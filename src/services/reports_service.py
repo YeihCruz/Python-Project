@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List
 from sqlalchemy import text
 from src.database.connection import get_db
@@ -148,7 +148,7 @@ class ReportsService:
             INNER JOIN country co ON c.country_id = co.country_id
             LEFT JOIN policy p ON c.client_id = p.client_id
             LEFT JOIN policy_status ps ON p.policy_status_id = ps.policy_status_id
-                AND ps.description = 'Active'
+                AND ps.description = 'Activa'
             GROUP BY co.name, c.first_name, c.last_name, c.identification_number
             ORDER BY co.name, c.last_name, c.first_name
         """)
@@ -172,7 +172,7 @@ class ReportsService:
             INNER JOIN client c ON p.client_id = c.client_id
             INNER JOIN insurance_type it ON p.insurance_type_id = it.insurance_type_id
             INNER JOIN policy_status ps ON p.policy_status_id = ps.policy_status_id
-            ORDER BY it.description, p.policy_number
+            ORDER BY p.policy_number
         """)
         with get_db() as db:
             rows = db.execute(sql).fetchall()
@@ -263,7 +263,7 @@ class ReportsService:
             FROM client c
             INNER JOIN policy p ON c.client_id = p.client_id
             INNER JOIN policy_status ps ON p.policy_status_id = ps.policy_status_id
-            WHERE ps.description = 'Cancelled'
+            WHERE ps.description = 'Cancelada'
             GROUP BY c.client_id, c.first_name, c.last_name, c.identification_number
             ORDER BY c.last_name, c.first_name
         """)
@@ -285,7 +285,7 @@ class ReportsService:
             FROM policy p
             INNER JOIN insurance_type it ON p.insurance_type_id = it.insurance_type_id
             INNER JOIN policy_status ps ON p.policy_status_id = ps.policy_status_id
-            WHERE ps.description = 'Active'
+            WHERE ps.description = 'Activa'
             GROUP BY it.description
             ORDER BY it.description
         """)
@@ -327,7 +327,7 @@ class ReportsService:
                    SUM(p.monthly_premium)
             FROM policy p
             INNER JOIN policy_status ps ON p.policy_status_id = ps.policy_status_id
-            WHERE ps.description = 'Active'
+            WHERE ps.description = 'Activa'
             GROUP BY EXTRACT(MONTH FROM p.start_date), TO_CHAR(p.start_date, 'Month')
             ORDER BY month_number
         """)
@@ -349,7 +349,7 @@ class ReportsService:
             INNER JOIN policy p ON c.client_id = p.client_id
             INNER JOIN claim cl ON p.policy_number = cl.policy_number
             INNER JOIN claim_status cs ON cl.claim_status_id = cs.claim_status_id
-            WHERE cs.description = 'Approved'
+            WHERE cs.description = 'Aprobado'
             GROUP BY c.client_id, c.first_name, c.last_name, c.identification_number
             ORDER BY c.last_name, c.first_name
         """)
@@ -372,7 +372,7 @@ class ReportsService:
             INNER JOIN policy p ON c.client_id = p.client_id
             INNER JOIN claim cl ON p.policy_number = cl.policy_number
             INNER JOIN claim_status cs ON cl.claim_status_id = cs.claim_status_id
-            WHERE cs.description = 'Rejected'
+            WHERE cs.description = 'Rechazado'
             GROUP BY c.client_id, c.first_name, c.last_name, c.identification_number,
                      cl.rejection_reason
             ORDER BY c.last_name, c.first_name
@@ -387,6 +387,35 @@ class ReportsService:
                 rejection_reason=row[4] or ""
             ))
         return reports
+
+    def get_client_details_report(self) -> List[dict]:
+        sql = text("""
+            SELECT c.client_id, c.first_name, c.last_name,
+                   c.identification_number, c.age, c.address, c.phone, c.email,
+                   g.description AS gender, co.name AS country, a.name AS agency,
+                   (SELECT COUNT(*) FROM policy p2
+                    INNER JOIN policy_status ps ON p2.policy_status_id = ps.policy_status_id
+                    WHERE p2.client_id = c.client_id AND ps.description = 'Activa'),
+                   (SELECT COALESCE(SUM(monthly_premium), 0) FROM policy p3
+                    WHERE p3.client_id = c.client_id)
+            FROM client c
+            INNER JOIN gender g ON c.gender_id = g.gender_id
+            INNER JOIN country co ON c.country_id = co.country_id
+            INNER JOIN agency a ON c.agency_id = a.agency_id
+            ORDER BY c.last_name, c.first_name
+        """)
+        with get_db() as db:
+            rows = db.execute(sql).fetchall()
+        return [
+            dict(
+                client_id=r[0], first_name=r[1], last_name=r[2],
+                identification_number=r[3], age=r[4], address=r[5],
+                phone=r[6], email=r[7], gender=r[8], country=r[9],
+                agency=r[10], active_policies=r[11],
+                total_premiums=float(r[12]),
+            )
+            for r in rows
+        ]
 
     def get_agency_report(self) -> List[AgencyReport]:
         sql = text("SELECT name, address, phone, email, general_director, insurance_manager, claims_manager FROM agency")

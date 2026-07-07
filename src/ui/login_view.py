@@ -2,60 +2,79 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from src.services.user_service import UserService
 from src.ui.ui_styles import UIStyles
-from src.ui.home_view import HomeView
+from src.ui.ui_scaling import UIScale
 
 
-class LoginView(tk.Tk):
-    def __init__(self):
-        super().__init__()
+class LoginView(tk.Toplevel):
+    def __init__(self, master, on_success=None):
+        super().__init__(master)
+        self.on_success = on_success
         self.user_service = UserService()
         self.title("Sistema de Seguros - Inicio de Sesión")
-        self.geometry("400x520")
-        self.resizable(False, False)
+        self.resizable(True, True)
+        self.minsize(UIScale.px(400), UIScale.px(520))
+        sw = self.winfo_screenwidth()
+        sh = self.winfo_screenheight()
+        w = UIScale.px(440)
+        h = UIScale.px(560)
+        self.geometry(f"{w}x{h}+{(sw-w)//2}+{(sh-h)//2}")
         self.configure(bg="#EBEEF5")
 
         self._build_ui()
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _build_ui(self):
-        card = tk.Frame(self, bg=UIStyles.CARD_BG, highlightbackground="#D2D7E1", highlightthickness=1)
-        card.place(relx=0.5, rely=0.5, anchor="center", width=360, height=460)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
 
-        title = tk.Label(card, text="Sistema de Seguros",
-                         font=("Segoe UI", 18, "bold"),
-                         fg=UIStyles.TEXT_PRIMARY, bg=UIStyles.CARD_BG)
-        title.pack(pady=(40, 5))
+        outer = tk.Frame(self, bg="#EBEEF5")
+        outer.grid(row=0, column=0, sticky="nsew")
+        outer.grid_rowconfigure(0, weight=1)
+        outer.grid_columnconfigure(0, weight=1)
 
-        subtitle = tk.Label(card, text="Ingrese sus credenciales para acceder",
-                            font=("Segoe UI", 10),
-                            fg=UIStyles.TEXT_SECONDARY, bg=UIStyles.CARD_BG)
-        subtitle.pack(pady=(0, 30))
+        card = tk.Frame(outer, bg=UIStyles.CARD_BG,
+                        highlightbackground="#D2D7E1", highlightthickness=1)
+        card.grid(row=0, column=0)
 
-        tk.Label(card, text="Usuario", font=("Segoe UI", 10, "bold"),
-                 fg=UIStyles.TEXT_PRIMARY, bg=UIStyles.CARD_BG).pack(anchor="w", padx=40)
-        self.txt_username = ttk.Entry(card, font=("Segoe UI", 11))
-        self.txt_username.pack(fill="x", padx=40, pady=(5, 15))
+        pad = UIScale.px
+        tk.Label(card, text="Sistema de Seguros",
+                 font=("Segoe UI", UIScale.font(20), "bold"),
+                 fg=UIStyles.TEXT_PRIMARY, bg=UIStyles.CARD_BG
+                 ).pack(pady=(pad(50), pad(5)))
 
-        tk.Label(card, text="Contraseña", font=("Segoe UI", 10, "bold"),
-                 fg=UIStyles.TEXT_PRIMARY, bg=UIStyles.CARD_BG).pack(anchor="w", padx=40)
-        self.txt_password = ttk.Entry(card, font=("Segoe UI", 11), show="*")
-        self.txt_password.pack(fill="x", padx=40, pady=(5, 25))
+        tk.Label(card, text="Ingrese sus credenciales para acceder",
+                 font=("Segoe UI", UIScale.font(11)),
+                 fg=UIStyles.TEXT_SECONDARY, bg=UIStyles.CARD_BG
+                 ).pack(pady=(0, pad(35)))
+
+        tk.Label(card, text="Usuario", font=("Segoe UI", UIScale.font(11), "bold"),
+                 fg=UIStyles.TEXT_PRIMARY, bg=UIStyles.CARD_BG
+                 ).pack(anchor="w", padx=pad(45))
+        self.txt_username = ttk.Entry(card, font=("Segoe UI", UIScale.font(12)))
+        self.txt_username.pack(fill="x", padx=pad(45), pady=(pad(5), pad(18)))
+
+        tk.Label(card, text="Contraseña", font=("Segoe UI", UIScale.font(11), "bold"),
+                 fg=UIStyles.TEXT_PRIMARY, bg=UIStyles.CARD_BG
+                 ).pack(anchor="w", padx=pad(45))
+        self.txt_password = ttk.Entry(card, font=("Segoe UI", UIScale.font(12)), show="*")
+        self.txt_password.pack(fill="x", padx=pad(45), pady=(pad(5), pad(30)))
 
         btn_frame = tk.Frame(card, bg=UIStyles.CARD_BG)
-        btn_frame.pack(pady=10)
+        btn_frame.pack(pady=pad(15))
 
-        btn_login = tk.Button(btn_frame, text="Ingresar",
-                              bg=UIStyles.PRIMARY, fg="white",
-                              font=("Segoe UI", 10, "bold"),
-                              relief="flat", padx=30, pady=8,
-                              command=self._perform_login)
-        btn_login.pack(side="left", padx=5)
+        self.btn_login = tk.Button(btn_frame, text="Ingresar",
+                                   bg=UIStyles.PRIMARY, fg="white",
+                                   font=("Segoe UI", UIScale.font(11), "bold"),
+                                   relief="flat", padx=pad(35), pady=pad(10),
+                                   command=self._perform_login)
+        self.btn_login.pack(side="left", padx=pad(8))
 
-        btn_clear = tk.Button(btn_frame, text="Limpiar",
-                              bg=UIStyles.CARD_BG, fg=UIStyles.TEXT_SECONDARY,
-                              font=("Segoe UI", 10),
-                              relief="solid", bd=1, padx=30, pady=8,
-                              command=self._clear_fields)
-        btn_clear.pack(side="left", padx=5)
+        self.btn_clear = tk.Button(btn_frame, text="Limpiar",
+                                   bg=UIStyles.CARD_BG, fg=UIStyles.TEXT_SECONDARY,
+                                   font=("Segoe UI", UIScale.font(11)),
+                                   relief="solid", bd=1, padx=pad(35), pady=pad(10),
+                                   command=self._clear_fields)
+        self.btn_clear.pack(side="left", padx=pad(8))
 
         self.txt_username.focus()
         self.bind("<Return>", lambda e: self._perform_login())
@@ -66,7 +85,8 @@ class LoginView(tk.Tk):
         password = self.txt_password.get()
 
         if not username or not password:
-            messagebox.showwarning("Campos incompletos", "Complete todos los campos necesarios para iniciar sesión")
+            messagebox.showwarning("Campos incompletos",
+                                   "Complete todos los campos necesarios para iniciar sesión")
             return
 
         user = self.user_service.login(username, password)
@@ -78,7 +98,11 @@ class LoginView(tk.Tk):
 
         messagebox.showinfo("Éxito", "Ha iniciado sesión con éxito")
         self.destroy()
-        HomeView(user).run()
+        if self.on_success:
+            self.on_success(user)
+
+    def _on_close(self):
+        self.master.destroy()
 
     def _clear_fields(self):
         self.txt_username.delete(0, "end")

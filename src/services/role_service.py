@@ -1,14 +1,37 @@
+from sqlalchemy.exc import IntegrityError
 from src.database.connection import get_db
 from src.repositories.role_repository import RoleRepository
+from src.models.role import Role
+from src.services.base_service import BaseService
+from src.services.exceptions import RelatedRecordsExistError
 
 
-class RoleService:
+class RoleService(BaseService):
+    MAX_NAME = 50
+
+    def _validate_create(self, **kwargs) -> str:
+        name = self.validate_required(kwargs.get("name"), "Nombre")
+        self.validate_string_length(name, "Nombre", max_len=self.MAX_NAME)
+        return name
+
+    def _validate_update(self, **kwargs) -> None:
+        if "name" not in kwargs:
+            return
+        name = self.validate_required(kwargs["name"], "Nombre")
+        self.validate_string_length(name, "Nombre", max_len=self.MAX_NAME)
+
     def create(self, **kwargs):
+        name = self._validate_create(**kwargs)
         with get_db() as db:
-            repo = RoleRepository(db)
-            role = repo.create(**kwargs)
-            db.commit()
-            return role
+            try:
+                self.check_duplicate(db, Role, "name", name)
+                repo = RoleRepository(db)
+                instance = repo.create(name=name)
+                db.commit()
+                return instance
+            except Exception:
+                db.rollback()
+                raise
 
     def get_by_id(self, role_id: int):
         with get_db() as db:
@@ -21,17 +44,36 @@ class RoleService:
             return repo.get_all()
 
     def update(self, role_id: int, **kwargs):
+        self._validate_update(**kwargs)
         with get_db() as db:
-            repo = RoleRepository(db)
-            role = repo.update(role_id, **kwargs)
-            if role:
+            try:
+                self.get_or_404(db, Role, role_id, "Rol")
+                if "name" in kwargs:
+                    self.check_duplicate(
+                        db, Role, "name",
+                        kwargs["name"], exclude_id=role_id
+                    )
+                repo = RoleRepository(db)
+                instance = repo.update(role_id, **kwargs)
                 db.commit()
-            return role
+                return instance
+            except Exception:
+                db.rollback()
+                raise
 
     def delete(self, role_id: int):
         with get_db() as db:
-            repo = RoleRepository(db)
-            result = repo.delete(role_id)
-            if result:
+            try:
+                self.get_or_404(db, Role, role_id, "Rol")
+                repo = RoleRepository(db)
+                result = repo.delete(role_id)
                 db.commit()
-            return result
+                return result
+            except IntegrityError:
+                db.rollback()
+                raise RelatedRecordsExistError(
+                    "No se puede eliminar el rol porque tiene usuarios asociados."
+                )
+            except Exception:
+                db.rollback()
+                raise
